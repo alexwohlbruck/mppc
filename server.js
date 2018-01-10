@@ -14,6 +14,7 @@ app.use(morgan('tiny'))
 
 const request = require('request-promise')
 const xml2js = require('xml2js-es6-promise')
+const moment = require('moment')
 const AWS = require('aws-sdk')
 const dynamodb = new AWS.DynamoDB({region: 'us-east-1'})
 
@@ -70,8 +71,12 @@ app.post('/dialogflowFirebaseFulfillment', (req, res) => {
       const now = new Date()
       const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000))
       const dateToISO = date => date.toISOString().slice(0,10)
-      // const formateEventTime = fullTime => time.splice
+      const formatEventTime = fullTime => {
+        const time = moment(fullTime, 'HH:mm:ss')
+        return time.format('h:mma')
+      }
       
+      // Query DB for events
       let {Items: events} = await dynamodb.scan({
         TableName: 'myers-church-events',
         FilterExpression: "#date between :start_date and :end_date",
@@ -88,15 +93,32 @@ app.post('/dialogflowFirebaseFulfillment', (req, res) => {
         }
       }).promise()
       
-      let listEvents = ''
-      events.forEach((event, index) => {
-        if (index == events.length - 1) {
-          events += 'and '
-        }
-        listEvents += `${event.event_name.S} at ${event.event_time.S}, `
+      const eventsCount = events.length
+      
+      // Sort events by time
+      events = events.sort((a, b) => {
+        if (a.event_time.S < b.event_time.S)
+          return -1;
+        if (a.event_time.S > b.event_time.S)
+          return 1;
+        return 0;
       })
       
-      const response = `<speak>Our ${events.length} events for today are: ${listEvents}`
+      // Create comma separated list of events by name
+      let listEvents = ''
+      events.forEach((event, index) => {
+        if (index == eventsCount - 1) {
+          listEvents += 'and '
+        }
+        listEvents +=
+          `
+          ${event.event_name.S} at
+          <say-as interpret-as="time" format="hms12">${formatEventTime(event.event_time.S)}</say-as>`
+          
+        listEvents += (index == eventsCount - 1 ? '.' : ', ') 
+      })
+      
+      const response = `<speak>Our ${eventsCount} events for today are: ${listEvents}`
       
       sendResponse(response)
     }
@@ -136,7 +158,7 @@ app.post('/dialogflowFirebaseFulfillment', (req, res) => {
   }
   
   function sendResponse (responseToUser) {
-    console.log(responseToUser)
+    // console.log(responseToUser)
     return res.json({
       fulfillmentText: responseToUser
     });
