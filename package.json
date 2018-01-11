@@ -9,6 +9,7 @@
     "async": "~0.2.8",
     "aws-sdk": "^2.179.0",
     "express": "~3.2.4",
+    "jssoup": "0.0.6",
     "moment": "^2.20.1",
     "request": "^2.83.0",
     "request-promise": "^4.2.2",
