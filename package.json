@@ -7,7 +7,7 @@
   "author": "Alex Wohlbruck <alexwohlbruck@gmail.com>",
   "dependencies": {
     "async": "~0.2.8",
-    "aws-sdk": "^2.179.0",
+    "aws-sdk": "^2.180.0",
     "aws-serverless-express": "^3.0.2",
     "body-parser": "^1.18.2",
     "encoding": "^0.1.12",
@@ -22,6 +22,6 @@
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
     "babel-preset-env": "^1.6.1",
-    "nodemon": "^1.14.10"
+    "nodemon": "^1.14.11"
   }
 }
