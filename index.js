@@ -102,7 +102,7 @@ exports.handler = (event, context, callback) => {
 
 	const actions = {
 		default: () => {
-			sendResponse(`Invalid action`);
+			sendResponse('Invalid action');
 		},
 
 		podcast: (() => {
@@ -130,9 +130,10 @@ exports.handler = (event, context, callback) => {
 				const html = devotions[0]['content:encoded'][0];
 				const soup = new JSSoup(html);
 
-				const response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
+				let response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
 
-				console.log(response);
+				// Replace UTF-8 characters with ascii - API Gateway doesn't like them
+				response = response.replace('–', '-').replace('–', '--').replace('“', '"').replace('”', '"').replace(`'`, `'`).replace(' ', ' ').replace('&nbsp;', '').replace('[Scripture quotations are from New Revised Standard Version Bible, copyright 1989 National Council of the Churches of Christ in the United States of America. Used by permission. All rights reserved]', '').replace(/[^\x00-\x7F]/g, '');
 
 				sendResponse(response);
 			});

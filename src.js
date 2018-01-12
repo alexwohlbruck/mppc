@@ -11,17 +11,19 @@ exports.handler = (event, context, callback) => {
 	
 	console.log(requestBody);
 	
-    const done = ({err, res}) => callback(null, {
-        statusCode: err ? '400' : '200',
-        body: err ? err.message : JSON.stringify(res),
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-    
-    const sendResponse = responseToUser => {
-    	
-    	console.log(responseToUser);
+	const done = ({err, res}) => callback(null, {
+		statusCode: err ? '400' : '200',
+		body: err ? err.message : JSON.stringify(res),
+		headers: {
+			'Content-Type': 'application/json',
+		},
+	});
+	
+	const sendResponse = responseToUser => {
+		
+		console.log(responseToUser);
+		
+		// TODO: Add rich text responses
 		
 		// if the response is a string send it as a response to the user
 		if (typeof responseToUser === 'string') {
@@ -63,16 +65,16 @@ exports.handler = (event, context, callback) => {
 		const redirectedUrl = await getRedirectedUrl(latestPodcastUrl);
 		
 		const response =
-		 `<speak>
+		   `<speak>
 				<audio src="${redirectedUrl}">
 					${message}
 				</audio>
 			</speak>`;
-			
+		
 		return response;
 	};
-    
-    try {
+	
+	try {
 		var action = (requestBody.queryResult.action) ? requestBody.queryResult.action : 'default';
 		var parameters = requestBody.queryResult.parameters || {};
 		var inputContexts = requestBody.queryResult.contexts;
@@ -107,10 +109,24 @@ exports.handler = (event, context, callback) => {
 			// Also get link: link[0], title: title[0], description: description[0]
 			const html = devotions[0]['content:encoded'][0];
 			const soup = new JSSoup(html);
+				
+			// TODO: Use JSSoup to remove section titles
 			
-			const response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
+			// TODO: Remove verse numbers
 			
-			console.log(response);
+			let response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
+			
+			// Replace UTF-8 characters with ascii - API Gateway doesn't like them
+			response = response
+				.replace('–', '-')
+				.replace('–', '--')
+				.replace('“', '"')
+				.replace('”', '"')
+				.replace(`'`, `'`)
+				.replace(' ', ' ')
+				.replace('&nbsp;', '') // Remove no-break spaces
+				.replace(/ *\[[^\]]*]/, '') // Remove text in brackets
+				.replace(/[^\x00-\x7F]/g, '');
 			
 			sendResponse(response);
 		},
@@ -151,6 +167,8 @@ exports.handler = (event, context, callback) => {
 			}).promise();
 			
 			const eventsCount = events.length;
+			
+			// TODO: Event times might not be localized. Check with Josh
 			
 			// Sort events by time
 			events = events.sort((a, b) => {
