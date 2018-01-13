@@ -9,8 +9,6 @@ exports.handler = (event, context, callback) => {
 	
 	const requestBody = typeof event.body == 'string' ? JSON.parse(event.body) : event.body;
 	
-	console.log(requestBody);
-	
 	const done = ({err, res}) => callback(null, {
 		statusCode: err ? '400' : '200',
 		body: err ? err.message : JSON.stringify(res),
@@ -56,18 +54,40 @@ exports.handler = (event, context, callback) => {
 		return response.request.uri.href;
 	};
 	
-	const getLatestPodcastUrl = async ({rssFeed, message}) => {
+	const utf6ToAscii = string => {
+		console.log(string);
+		return typeof string != 'string' ? null : string
+			.replace('–', '-')
+			.replace('–', '--')
+			.replace('“', '"')
+			.replace('”', '"')
+			.replace(`'`, `'`)
+			.replace(' ', ' ')
+			.replace('&nbsp;', '') // Remove no-break spaces
+			.replace(/ *\[[^\]]*]/, '') // Remove text in brackets
+			.replace(/[^\x00-\x7F]/g, '');
+	};
+	
+	const getLatestPodcastUrl = async ({rssFeed, type}) => {
 		const rss = await request(rssFeed);
 		const {rss: parsed} = await xml2js(rss);
 		
-		const podcasts = parsed.channel[0].item;
-		const latestPodcastUrl = podcasts[0].enclosure[0].$.url;
+		let podcast = parsed.channel[0].item[0];
+		const latestPodcastUrl = podcast.enclosure[0].$.url;
 		const redirectedUrl = await getRedirectedUrl(latestPodcastUrl);
+		
+		console.log(podcast);
+		
+		podcast = {
+			title: podcast.title,
+			subtitle: utf6ToAscii(podcast['itunes.subtitle']),
+			description: utf6ToAscii(podcast['itunes.summary'])
+		};
 		
 		const response =
 		   `<speak>
 				<audio src="${redirectedUrl}">
-					${message}
+					Okay, here's the latest ${type} called ${podcast.title}. ${podcast.subtitle}
 				</audio>
 			</speak>`;
 		
@@ -81,11 +101,8 @@ exports.handler = (event, context, callback) => {
 		var reqSource = (requestBody.originalDetectIntentreq) ? requestBody.originalDetectIntentreq.source : undefined;
 		var session = (requestBody.session) ? requestBody.session : undefined;
 	} catch (err) {
-		var action = 'podcast';
 		console.error(`Couldn't parse request`, err);
 	}
-	
-	console.log(action);
 	
 	const actions = {
 		default: () => {
@@ -95,9 +112,18 @@ exports.handler = (event, context, callback) => {
 		podcast: async () => {
 			const response = await getLatestPodcastUrl({
 				rssFeed: 'https://podcasts.subsplash.com/b77dd7e/podcast.rss',
-				message: `Okay, here's the latest youth podcast`
+				type: 'youth podcast'
 			});
 			
+			sendResponse(response);
+		},
+		
+		sermon: async() => {
+			const response = await getLatestPodcastUrl({
+				rssFeed: 'https://podcasts.subsplash.com/6527700/podcast.rss',
+				type: 'sermon'
+			});
+				
 			sendResponse(response);
 		},
 		
@@ -117,26 +143,8 @@ exports.handler = (event, context, callback) => {
 			let response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
 			
 			// Replace UTF-8 characters with ascii - API Gateway doesn't like them
-			response = response
-				.replace('–', '-')
-				.replace('–', '--')
-				.replace('“', '"')
-				.replace('”', '"')
-				.replace(`'`, `'`)
-				.replace(' ', ' ')
-				.replace('&nbsp;', '') // Remove no-break spaces
-				.replace(/ *\[[^\]]*]/, '') // Remove text in brackets
-				.replace(/[^\x00-\x7F]/g, '');
+			response = utf6ToAscii(response);
 			
-			sendResponse(response);
-		},
-		
-		sermon: async() => {
-			const response = await getLatestPodcastUrl({
-				rssFeed: 'https://podcasts.subsplash.com/6527700/podcast.rss',
-				message: `Okay, here's the latest sermon`
-			});
-				
 			sendResponse(response);
 		},
 		
