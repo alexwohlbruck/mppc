@@ -1,13 +1,235 @@
-'use strict';
-
 function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
 
-const request = require('request-promise');
-const xml2js = require('xml2js-es6-promise');
-const JSSoup = require('jssoup').default;
-const moment = require('moment');
-const AWS = require('aws-sdk');
-const dynamodb = new AWS.DynamoDB({ region: 'us-east-1' });
+module.exports = (() => {
+    var _ref = _asyncToGenerator(function* (sendResponse) {
+        sendResponse('Invalid action');
+    });
+
+    return function (_x) {
+        return _ref.apply(this, arguments);
+    };
+})();
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+let request = require('request-promise');
+let xml2js = require('xml2js-es6-promise');
+let JSSoup = require('jssoup').default;
+
+let utf8ToAscii = require('../helpers/utf8-to-ascii');
+
+module.exports = (() => {
+    var _ref = _asyncToGenerator(function* (sendResponse) {
+        const rss = yield request('https://devotions.mppcblogs.org/feed');
+        const { rss: parsed } = yield xml2js(rss);
+        const devotions = parsed.channel[0].item;
+
+        // Also get link: link[0], title: title[0], description: description[0]
+        const html = devotions[0]['content:encoded'][0];
+        const soup = new JSSoup(html);
+
+        // TODO: Use JSSoup to remove section titles
+
+        // TODO: Remove verse numbers
+
+        let response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
+
+        // Replace UTF-8 characters with ascii - API Gateway doesn't like them
+        response = utf8ToAscii(response);
+
+        sendResponse(response);
+    });
+
+    return function (_x) {
+        return _ref.apply(this, arguments);
+    };
+})();
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+let moment = require('moment');
+let AWS = require('aws-sdk');
+
+let dynamodb = new AWS.DynamoDB({ region: 'us-east-1' });
+
+module.exports = (() => {
+    var _ref = _asyncToGenerator(function* (sendResponse) {
+        const now = new Date();
+        const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+        const dateToISO = function (date) {
+            return date.toISOString().slice(0, 10);
+        };
+        const formatEventTime = function (fullTime) {
+            const time = moment(fullTime, 'HH:mm:ss');
+            return time.format('h:mma');
+        };
+
+        // Query DB for events
+        let { Items: events } = yield dynamodb.scan({
+            TableName: 'myers-church-events',
+            FilterExpression: "#date between :start_date and :end_date",
+            ExpressionAttributeNames: {
+                "#date": "event_date"
+            },
+            ExpressionAttributeValues: {
+                ":start_date": {
+                    S: dateToISO(now)
+                },
+                ":end_date": {
+                    S: dateToISO(tomorrow)
+                }
+            }
+        }).promise();
+
+        const eventsCount = events.length;
+
+        // TODO: Event times might not be localized. Check with Josh
+
+        // Sort events by time
+        events = events.sort(function (a, b) {
+            if (a.event_time.S < b.event_time.S) return -1;
+            if (a.event_time.S > b.event_time.S) return 1;
+            return 0;
+        });
+
+        // Create comma separated list of events by name
+        let listEvents = '';
+        events.forEach(function (event, index) {
+            if (index == eventsCount - 1) {
+                listEvents += 'and ';
+            }
+            listEvents += `
+    		${event.event_name.S} at
+    		<say-as interpret-as="time" format="hms12">${formatEventTime(event.event_time.S)}</say-as>`;
+
+            listEvents += index == eventsCount - 1 ? '.' : ', ';
+        });
+
+        const response = `<speak>Our ${eventsCount} event${eventsCount == 1 ? '' : 's'} for today are: ${listEvents}</speak>`;
+
+        sendResponse(response);
+    });
+
+    return function (_x) {
+        return _ref.apply(this, arguments);
+    };
+})();
+let defaultAction = require('./default');
+let devotion = require('./devotion');
+let events = require('./events');
+let podcast = require('./podcast');
+let sermon = require('./sermon');
+
+module.exports = sendResponse => {
+    return {
+        defaultAction,
+        devotion,
+        events,
+        podcast,
+        sermon
+    };
+};
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+let getLatestPodcastUrl = require('../helpers/get-latest-podcast-url');
+
+module.exports = (() => {
+    var _ref = _asyncToGenerator(function* (sendResponse) {
+        const response = yield getLatestPodcastUrl({
+            rssFeed: 'https://podcasts.subsplash.com/b77dd7e/podcast.rss',
+            type: 'youth podcast'
+        });
+
+        sendResponse(response);
+    });
+
+    return function (_x) {
+        return _ref.apply(this, arguments);
+    };
+})();
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+let getLatestPodcastUrl = require('../helpers/get-latest-podcast-url');
+
+module.exports = (() => {
+    var _ref = _asyncToGenerator(function* (sendResponse) {
+        const response = yield getLatestPodcastUrl({
+            rssFeed: 'https://podcasts.subsplash.com/6527700/podcast.rss',
+            type: 'sermon'
+        });
+
+        sendResponse(response);
+    });
+
+    return function (_x) {
+        return _ref.apply(this, arguments);
+    };
+})();
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+let request = require('request-promise');
+let xml2js = require('xml2js-es6-promise');
+
+let utf8ToAscii = require('./utf8-to-ascii');
+let getRedirectedUrl = require('./get-redirected-url');
+
+module.exports = (() => {
+	var _ref = _asyncToGenerator(function* ({ rssFeed, type }) {
+		const rss = yield request(rssFeed);
+		const { rss: parsed } = yield xml2js(rss);
+
+		let podcast = parsed.channel[0].item[0];
+		const latestPodcastUrl = podcast.enclosure[0].$.url;
+		const redirectedUrl = yield getRedirectedUrl(latestPodcastUrl);
+
+		console.log(podcast);
+
+		podcast = {
+			title: podcast.title,
+			subtitle: utf8ToAscii(podcast['itunes.subtitle']),
+			description: utf8ToAscii(podcast['itunes.summary'])
+		};
+
+		const response = `<speak>
+			<audio src="${redirectedUrl}">
+				Okay, here's the latest ${type} called ${podcast.title}. ${podcast.subtitle}
+			</audio>
+		</speak>`;
+
+		return response;
+	});
+
+	return function (_x) {
+		return _ref.apply(this, arguments);
+	};
+})();
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+let request = require('request-promise');
+
+module.exports = (() => {
+	var _ref = _asyncToGenerator(function* (originalUrl) {
+		const response = yield request({
+			followAllRedirects: true,
+			resolveWithFullResponse: true,
+			uri: originalUrl
+		});
+		return response.request.uri.href;
+	});
+
+	return function (_x) {
+		return _ref.apply(this, arguments);
+	};
+})();
+module.exports = string => {
+	console.log(string);
+	return typeof string != 'string' ? null : string.replace('–', '-').replace('–', '--').replace('“', '"').replace('”', '"').replace(`'`, `'`).replace(' ', ' ').replace('&nbsp;', '') // Remove no-break spaces
+	.replace(/ *\[[^\]]*]/, '') // Remove text in brackets
+	.replace(/[^\x00-\x7F]/g, '');
+};
+// import request from 'request-promise-native';
+// import xml2js from 'xml2js-es6-promise';
+// import JSSoup from 'jssoup';
+// import moment from 'moment';
+// import AWS from 'aws-sdk';
 
 exports.handler = (event, context, callback) => {
 
@@ -49,59 +271,6 @@ exports.handler = (event, context, callback) => {
 		}
 	};
 
-	const getRedirectedUrl = (() => {
-		var _ref = _asyncToGenerator(function* (originalUrl) {
-			const response = yield request({
-				followAllRedirects: true,
-				resolveWithFullResponse: true,
-				uri: originalUrl
-			});
-			return response.request.uri.href;
-		});
-
-		return function getRedirectedUrl(_x) {
-			return _ref.apply(this, arguments);
-		};
-	})();
-
-	const utf6ToAscii = string => {
-		console.log(string);
-		return typeof string != 'string' ? null : string.replace('–', '-').replace('–', '--').replace('“', '"').replace('”', '"').replace(`'`, `'`).replace(' ', ' ').replace('&nbsp;', '') // Remove no-break spaces
-		.replace(/ *\[[^\]]*]/, '') // Remove text in brackets
-		.replace(/[^\x00-\x7F]/g, '');
-	};
-
-	const getLatestPodcastUrl = (() => {
-		var _ref2 = _asyncToGenerator(function* ({ rssFeed, type }) {
-			const rss = yield request(rssFeed);
-			const { rss: parsed } = yield xml2js(rss);
-
-			let podcast = parsed.channel[0].item[0];
-			const latestPodcastUrl = podcast.enclosure[0].$.url;
-			const redirectedUrl = yield getRedirectedUrl(latestPodcastUrl);
-
-			console.log(podcast);
-
-			podcast = {
-				title: podcast.title,
-				subtitle: utf6ToAscii(podcast['itunes.subtitle']),
-				description: utf6ToAscii(podcast['itunes.summary'])
-			};
-
-			const response = `<speak>
-				<audio src="${redirectedUrl}">
-					Okay, here's the latest ${type} called ${podcast.title}. ${podcast.subtitle}
-				</audio>
-			</speak>`;
-
-			return response;
-		});
-
-		return function getLatestPodcastUrl(_x2) {
-			return _ref2.apply(this, arguments);
-		};
-	})();
-
 	try {
 		var action = requestBody.queryResult.action ? requestBody.queryResult.action : 'default';
 		var parameters = requestBody.queryResult.parameters || {};
@@ -112,135 +281,11 @@ exports.handler = (event, context, callback) => {
 		console.error(`Couldn't parse request`, err);
 	}
 
-	const actions = {
-		default: () => {
-			sendResponse('Invalid action');
-		},
-
-		podcast: (() => {
-			var _ref3 = _asyncToGenerator(function* () {
-				const response = yield getLatestPodcastUrl({
-					rssFeed: 'https://podcasts.subsplash.com/b77dd7e/podcast.rss',
-					type: 'youth podcast'
-				});
-
-				sendResponse(response);
-			});
-
-			return function podcast() {
-				return _ref3.apply(this, arguments);
-			};
-		})(),
-
-		sermon: (() => {
-			var _ref4 = _asyncToGenerator(function* () {
-				const response = yield getLatestPodcastUrl({
-					rssFeed: 'https://podcasts.subsplash.com/6527700/podcast.rss',
-					type: 'sermon'
-				});
-
-				sendResponse(response);
-			});
-
-			return function sermon() {
-				return _ref4.apply(this, arguments);
-			};
-		})(),
-
-		devotion: (() => {
-			var _ref5 = _asyncToGenerator(function* () {
-				const rss = yield request('https://devotions.mppcblogs.org/feed');
-				const { rss: parsed } = yield xml2js(rss);
-				const devotions = parsed.channel[0].item;
-
-				// Also get link: link[0], title: title[0], description: description[0]
-				const html = devotions[0]['content:encoded'][0];
-				const soup = new JSSoup(html);
-
-				// TODO: Use JSSoup to remove section titles
-
-				// TODO: Remove verse numbers
-
-				let response = `<speak><prosody rate="slow>${soup.text}</prosody></speak>`;
-
-				// Replace UTF-8 characters with ascii - API Gateway doesn't like them
-				response = utf6ToAscii(response);
-
-				sendResponse(response);
-			});
-
-			return function devotion() {
-				return _ref5.apply(this, arguments);
-			};
-		})(),
-
-		events: (() => {
-			var _ref6 = _asyncToGenerator(function* () {
-				const now = new Date();
-				const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-				const dateToISO = function (date) {
-					return date.toISOString().slice(0, 10);
-				};
-				const formatEventTime = function (fullTime) {
-					const time = moment(fullTime, 'HH:mm:ss');
-					return time.format('h:mma');
-				};
-
-				// Query DB for events
-				let { Items: events } = yield dynamodb.scan({
-					TableName: 'myers-church-events',
-					FilterExpression: "#date between :start_date and :end_date",
-					ExpressionAttributeNames: {
-						"#date": "event_date"
-					},
-					ExpressionAttributeValues: {
-						":start_date": {
-							S: dateToISO(now)
-						},
-						":end_date": {
-							S: dateToISO(tomorrow)
-						}
-					}
-				}).promise();
-
-				const eventsCount = events.length;
-
-				// TODO: Event times might not be localized. Check with Josh
-
-				// Sort events by time
-				events = events.sort(function (a, b) {
-					if (a.event_time.S < b.event_time.S) return -1;
-					if (a.event_time.S > b.event_time.S) return 1;
-					return 0;
-				});
-
-				// Create comma separated list of events by name
-				let listEvents = '';
-				events.forEach(function (event, index) {
-					if (index == eventsCount - 1) {
-						listEvents += 'and ';
-					}
-					listEvents += `
-					${event.event_name.S} at
-					<say-as interpret-as="time" format="hms12">${formatEventTime(event.event_time.S)}</say-as>`;
-
-					listEvents += index == eventsCount - 1 ? '.' : ', ';
-				});
-
-				const response = `<speak>Our ${eventsCount} event${eventsCount == 1 ? '' : 's'} for today are: ${listEvents}</speak>`;
-
-				sendResponse(response);
-			});
-
-			return function events() {
-				return _ref6.apply(this, arguments);
-			};
-		})()
-	};
+	const actions = require('./actions')(sendResponse);
 
 	if (actions[action]) {
 		actions[action]();
 	} else {
-		actions.default();
+		actions.defaultAction();
 	}
 };
