@@ -6,7 +6,7 @@
   "repository": "git://github.com/alexwohlbruck/mppc.git",
   "author": "Alex Wohlbruck <alexwohlbruck@gmail.com>",
   "scripts": {
-    "start": "node server",
+    "start": "nodemon server",
     "build": "babel src -d build && sh build.sh"
   },
   "dependencies": {

@@ -12,7 +12,9 @@ const routes = require('./src/actions');
 
 for (const route in routes) {
     app.post(`/${route}`, async (req, res) => {
-        return res.json(await routes[route]());
+        return res.json({
+        	fulfillmentText: await routes[route]()
+        });
     });
 }
 
