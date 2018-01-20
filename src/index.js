@@ -1,10 +1,6 @@
-// import request from 'request-promise-native';
-// import xml2js from 'xml2js-es6-promise';
-// import JSSoup from 'jssoup';
-// import moment from 'moment';
-// import AWS from 'aws-sdk';
+'use strict';
 
-exports.handler = (event, context, callback) => {
+module.exports = (event, context, callback) => {
 	
 	const requestBody = typeof event.body == 'string' ? JSON.parse(event.body) : event.body;
 	
@@ -54,11 +50,11 @@ exports.handler = (event, context, callback) => {
 		console.error(`Couldn't parse request`, err);
 	}
 	
-	const actions = require('./actions')(sendResponse);
+	const actions = require('./actions');
 	
 	if (actions[action]) {
-		actions[action]();
+		sendResponse(actions[action]());
 	} else {
-		actions.defaultAction();
+		sendResponse(actions.defaultAction());
 	}
 };
