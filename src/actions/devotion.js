@@ -4,7 +4,7 @@ let JSSoup = require('jssoup').default;
 
 let utf8ToAscii = require('../helpers/utf8-to-ascii');
 
-module.exports = async sendResponse => {
+module.exports = async () => {
     const rss = await request('https://devotions.mppcblogs.org/feed');
     const {rss: parsed} = await xml2js(rss);
     const devotions = parsed.channel[0].item;
@@ -22,5 +22,5 @@ module.exports = async sendResponse => {
     // Replace UTF-8 characters with ascii - API Gateway doesn't like them
     response = utf8ToAscii(response);
     
-    sendResponse(response);
+    return response;
 };

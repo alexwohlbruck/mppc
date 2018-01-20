@@ -1,3 +1,3 @@
 module.exports = async sendResponse => {
-    sendResponse('Invalid action');
+    return 'Invalid action'
 };

@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = (event, context, callback) => {
+module.exports = async (event, context, callback) => {
 	
 	const requestBody = typeof event.body == 'string' ? JSON.parse(event.body) : event.body;
 	
@@ -53,8 +53,8 @@ module.exports = (event, context, callback) => {
 	const actions = require('./actions');
 	
 	if (actions[action]) {
-		sendResponse(actions[action]());
+		sendResponse(await actions[action]());
 	} else {
-		sendResponse(actions.defaultAction());
+		sendResponse(await actions.defaultAction());
 	}
 };

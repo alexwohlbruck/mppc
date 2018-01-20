@@ -3,7 +3,7 @@ let AWS = require('aws-sdk');
 
 let dynamodb = new AWS.DynamoDB({region: 'us-east-1'});
 
-module.exports = async sendResponse => {
+module.exports = async () => {
     const now = new Date();
     const tomorrow = new Date(now.getTime() + (24 * 60 * 60 * 1000));
     const dateToISO = date => date.toISOString().slice(0,10);
@@ -58,5 +58,5 @@ module.exports = async sendResponse => {
     
     const response = `<speak>Our ${eventsCount} event${eventsCount == 1 ? '' : 's'} for today are: ${listEvents}</speak>`;
     
-    sendResponse(response);
+    return response;
 };

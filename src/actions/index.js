@@ -4,12 +4,10 @@ let events = require('./events');
 let podcast = require('./podcast');
 let sermon = require('./sermon');
 
-module.exports = sendResponse => {
-    return {
-        defaultAction,
-        devotion,
-        events,
-        podcast,
-        sermon
-    };
+module.exports = {
+    defaultAction,
+    devotion,
+    events,
+    podcast,
+    sermon
 };
