@@ -22,7 +22,7 @@ module.exports = async ({rssFeed, type, datePeriod}) => {
 		})
 
 		if (!podcast) {
-			return `Sorry, couldn't find that ${type}`
+			return `Sorry, I couldn't find that ${type}.`
 		}
 	} else {
 		podcast = podcasts[0]
@@ -32,15 +32,16 @@ module.exports = async ({rssFeed, type, datePeriod}) => {
 	const redirectedUrl = await getRedirectedUrl(podcastUrl)
 	
 	podcast = {
-		title: podcast.title,
+		title: utf8ToAscii(podcast.title),
 		subtitle: utf8ToAscii(podcast['itunes.subtitle']),
-		description: utf8ToAscii(podcast['itunes.summary'])
+		description: utf8ToAscii(podcast['itunes.summary']),
+		url: redirectedUrl
 	}
 	
 	const response =
 	   `<speak>
-			Okay, here's the ${datePeriod ? '' : 'latest '}${type} called ${podcast.title}.
-			<audio src="${redirectedUrl}"></audio>
+			Okay, here's the ${datePeriod ? '' : 'latest '}${type} called "${podcast.title}".
+			<audio src="${podcast.url}"></audio>
 		</speak>`
 	
 	return response
