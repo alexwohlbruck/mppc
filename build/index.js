@@ -25,8 +25,8 @@ module.exports = (() => {
 
 			// if the response is a string send it as a response to the user
 			if (typeof responseToUser === 'string') {
-				let responseJson = { fulfillmentText: responseToUser }; // displayed response
-				done({ res: responseJson }); // Send response to Dialogflow
+				let responseJson = { fulfillmentText: responseToUser // displayed response
+				};done({ res: responseJson }); // Send response to Dialogflow
 			} else {
 				// If the response to the user includes rich responses or contexts send them to Dialogflow
 				let responseJson = {};
@@ -46,21 +46,25 @@ module.exports = (() => {
 		};
 
 		try {
-			var action = requestBody.queryResult.action ? requestBody.queryResult.action : 'default';
-			var parameters = requestBody.queryResult.parameters || {};
-			var inputContexts = requestBody.queryResult.contexts;
-			var reqSource = requestBody.originalDetectIntentreq ? requestBody.originalDetectIntentreq.source : undefined;
-			var session = requestBody.session ? requestBody.session : undefined;
+
+			var request = {
+				action: requestBody.queryResult.action ? requestBody.queryResult.action : 'default',
+				params: requestBody.queryResult.parameters || {},
+				reqSource: requestBody.originalDetectIntentRequest ? requestBody.originalDetectIntentRequest.payload : undefined,
+				session: requestBody.session ? requestBody.session : undefined
+			};
+
+			console.log(request);
 		} catch (err) {
 			console.error(`Couldn't parse request`, err);
 		}
 
 		const actions = require('./actions');
 
-		if (actions[action]) {
-			sendResponse((yield actions[action]()));
+		if (actions[request.action]) {
+			sendResponse((yield actions[request.action](request)));
 		} else {
-			sendResponse((yield actions.defaultAction()));
+			sendResponse((yield actions.defaultAction(request)));
 		}
 	});
 
