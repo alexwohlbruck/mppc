@@ -1,9 +1,10 @@
-let getLatestPodcastUrl = require('../helpers/get-latest-podcast-url')
+let getPodcastUrl = require('../helpers/get-podcast-url')
 
-module.exports = async () => {
-    const response = await getLatestPodcastUrl({
+module.exports = async ({params}) => {
+    const response = await getPodcastUrl({
     	rssFeed: 'https://podcasts.subsplash.com/6527700/podcast.rss',
-    	type: 'sermon'
+    	type: 'sermon',
+    	datePeriod: params['date-period'] || undefined
     })
     	
     return response

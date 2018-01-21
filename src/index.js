@@ -41,16 +41,12 @@ module.exports = async (event, context, callback) => {
 	}
 	
 	try {
-
-
 		var request = {
 			action: (requestBody.queryResult.action) ? requestBody.queryResult.action : 'default',
 			params: requestBody.queryResult.parameters || {},
 			reqSource: (requestBody.originalDetectIntentRequest) ? requestBody.originalDetectIntentRequest.payload : undefined,
 			session: (requestBody.session) ? requestBody.session : undefined
 		}
-
-		console.log(request)
 	} catch (err) {
 		console.error(`Couldn't parse request`, err)
 	}
