@@ -20,7 +20,7 @@ module.exports = async (event, context, callback) => {
 		
 		// if the response is a string send it as a response to the user
 		if (typeof responseToUser === 'string') {
-			let responseJson = {fulfillmentText: responseToUser} // displayed response
+			let responseJson = {fulfillmentText: responseToUser} // displyaed response
 			done({res: responseJson}) // Send response to Dialogflow
 		} else {
 			// If the response to the user includes rich responses or contexts send them to Dialogflow
@@ -29,7 +29,7 @@ module.exports = async (event, context, callback) => {
 			responseJson.fulfillmentText = responseToUser.fulfillmentText
 			// Optional: add rich messages for integrations (https://dialogflow.com/docs/rich-messages)
 			if (responseToUser.fulfillmentMessages) {
-				responseJson.fulfillmentMessages = responseToUser.fulfillmentMessages
+				responseJson.fulfillmentMessages = responseToUser.fulfillmentMessages ////////////////////////////////////////////////// Add 'messages' object here??
 			}
 			// Optional: add contexts (https://dialogflow.com/docs/contexts)
 			if (responseToUser.outputContexts) {

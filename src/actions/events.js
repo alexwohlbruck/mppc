@@ -16,6 +16,8 @@ module.exports = async ({reqSource}) => {
     const end = new Date()
           end.setHours(24, 0, 0, 0) // Closest midnight in future (EST - server's local time)
 
+    // TODO: DB query doesn't take include times, only dates.
+
     const dateToISO = date => date.toISOString().slice(0,10)
     const formatEventTime = fullTime => {
     	const time = moment(fullTime, 'HH:mm:ss').tz('America/Los_Angeles'/*reqSource.timeZone*/)

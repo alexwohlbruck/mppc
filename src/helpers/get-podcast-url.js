@@ -32,11 +32,13 @@ module.exports = async ({rssFeed, type, datePeriod}) => {
 	const redirectedUrl = await getRedirectedUrl(podcastUrl)
 	
 	podcast = {
-		title: utf8ToAscii(podcast.title),
-		subtitle: utf8ToAscii(podcast['itunes.subtitle']),
-		description: utf8ToAscii(podcast['itunes.summary']),
+		title: utf8ToAscii(podcast.title[0]),
+		subtitle: utf8ToAscii(podcast['itunes:subtitle'][0]),
+		description: utf8ToAscii(podcast['itunes:summary'][0]),
 		url: redirectedUrl
 	}
+
+	console.log(podcast)
 	
 	const response =
 	   `<speak>
